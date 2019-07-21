@@ -1,4 +1,4 @@
-Sherlock
+Sherlock (Sheri)
 ========
 
 Extract interesting information about redditors from their submissions and comments. Outputs data in JSON format.
@@ -7,6 +7,7 @@ Dependencies
 ------------
 * [pytz](https://pypi.python.org/pypi/pytz/)
 * [TextBlob 0.9.0](http://textblob.readthedocs.org/en/dev/)
+* [Flask](https://pypi.org/project/Flask/)
 
 Setup
 -----
@@ -16,7 +17,10 @@ Setup
 Usage
 -----
     python sherlock.py <reddit-username>
-    
+
+Changes to Sherlock (Sheri) also allow it to be run as a flask web application from a local environment or from Azure using application.py  
+Also, requests can be simple requests or full requests (default) to save time and processing power if all you care about is some basic data and karma counts
+
 Example
 -------
 Command:
