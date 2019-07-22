@@ -1362,12 +1362,11 @@ class RedditUser:
           }
         )
 
-    
     metrics_topic = {
       "name" : "All", 
       "children" : []
     }
-    
+
     # We need both topics (for Posts across topics) and 
     # synopsis_topics (for Synopsis) because we want to include only 
     # topics that meet the threshold limits in synopsis_topics    
@@ -1396,67 +1395,68 @@ class RedditUser:
           synopsis_topics += [topic] * count
 
     topics = []
-    
-    for comment in self.comments:
-      subreddit = subreddits_dict[comment.subreddit] \
-        if comment.subreddit in subreddits_dict else None
-      if subreddit and subreddit["topic_level1"] != "Other":
-        topic = subreddit["topic_level1"]
-        if subreddit["topic_level2"]:
-          topic += ">" + subreddit["topic_level2"]
+
+    if self.full_query:
+      for comment in self.comments:
+        subreddit = subreddits_dict[comment.subreddit] \
+          if comment.subreddit in subreddits_dict else None
+        if subreddit and subreddit["topic_level1"] != "Other":
+          topic = subreddit["topic_level1"]
+          if subreddit["topic_level2"]:
+            topic += ">" + subreddit["topic_level2"]
+          else:
+            topic += ">" + "Generic"
+          if subreddit["topic_level3"]:
+            topic += ">" + subreddit["topic_level3"]
+          else:
+            topic += ">" + "Generic"
+          topics.append(topic)
         else:
-          topic += ">" + "Generic"
-        if subreddit["topic_level3"]:
-          topic += ">" + subreddit["topic_level3"]
+          topics.append("Other")
+
+      for submission in self.submissions:
+        subreddit = subreddits_dict[submission.subreddit] \
+          if submission.subreddit in subreddits_dict else None
+        if subreddit and subreddit["topic_level1"] != "Other":
+          topic = subreddit["topic_level1"]
+          if subreddit["topic_level2"]:
+            topic += ">" + subreddit["topic_level2"]
+          else:
+            topic += ">" + "Generic"
+          if subreddit["topic_level3"]:
+            topic += ">" + subreddit["topic_level3"]
+          else:
+            topic += ">" + "Generic"
+          topics.append(topic)
         else:
-          topic += ">" + "Generic"
-        topics.append(topic)
-      else:
-        topics.append("Other")
-    
-    for submission in self.submissions:
-      subreddit = subreddits_dict[submission.subreddit] \
-        if submission.subreddit in subreddits_dict else None
-      if subreddit and subreddit["topic_level1"] != "Other":
-        topic = subreddit["topic_level1"]
-        if subreddit["topic_level2"]:
-          topic += ">" + subreddit["topic_level2"]
-        else:
-          topic += ">" + "Generic"
-        if subreddit["topic_level3"]:
-          topic += ">" + subreddit["topic_level3"]
-        else:
-          topic += ">" + "Generic"
-        topics.append(topic)
-      else:
-        topics.append("Other")
-    
-    for topic, count in Counter(topics).most_common():
-      level_topics = filter(None, topic.split(">"))
-      current_node = metrics_topic
-      for i, level_topic in enumerate(level_topics):
-        children = current_node["children"]
-        if i+1 < len(level_topics):
-          found_child = False
-          for child in children:
-            if child["name"] == level_topic:
-              child_node = child
-              found_child = True
-              break
-          if not found_child:
+          topics.append("Other")
+
+      for topic, count in Counter(topics).most_common():
+        level_topics = filter(None, topic.split(">"))
+        current_node = metrics_topic
+        for i, level_topic in enumerate(level_topics):
+          children = current_node["children"]
+          if i+1 < len(level_topics):
+            found_child = False
+            for child in children:
+              if child["name"] == level_topic:
+                child_node = child
+                found_child = True
+                break
+            if not found_child:
+              child_node = {
+                "name" : level_topic, 
+                "children" : []
+              }
+              children.append(child_node)
+            current_node = child_node
+          else:
             child_node = {
               "name" : level_topic, 
-              "children" : []
+              "size" : count
             }
             children.append(child_node)
-          current_node = child_node
-        else:
-          child_node = {
-            "name" : level_topic, 
-            "size" : count
-          }
-          children.append(child_node)   
-    
+
     common_words = [
       {
         "text" : word, 
