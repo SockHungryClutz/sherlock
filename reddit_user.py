@@ -198,7 +198,7 @@ class RedditUser:
   def __init__(self, username, json_data=None, complete_query=True):
     # Populate username and about data
     self.username = username
-    self.full_query = full_query
+    self.full_query = complete_query
 
     self.comments = []
     self.submissions = []
@@ -501,7 +501,7 @@ class RedditUser:
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
         # SHC: Reddit's official rate limit is 1 request/sec
-        time.sleep(1)
+        time.sleep(0.5)
       else:
         more_comments = False
 
@@ -567,7 +567,7 @@ class RedditUser:
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
         # SHC: Reddit's official rate limit is 1 request/sec
-        time.sleep(1)
+        time.sleep(0.5)
       else:
         more_submissions = False
 
@@ -584,8 +584,6 @@ class RedditUser:
     if self.full_query:
       if self.comments:
         self.process_comments()
-
-    if self.full_query:
       if self.submissions:
         self.process_submissions()
 
@@ -598,9 +596,6 @@ class RedditUser:
     Process list of redditor's comments.
 
     """
-
-    if not self.comments:
-      return
 
     self.earliest_comment = self.comments[-1]
     self.latest_comment = self.comments[0]
@@ -618,9 +613,6 @@ class RedditUser:
 
     """
 
-    if not self.submissions:
-      return
-    
     self.earliest_submission = self.submissions[-1]
     self.latest_submission = self.submissions[0]
 
@@ -1904,8 +1896,12 @@ class RedditUser:
       [x["submission_karma"] for x in metrics_date]
     )
 
-    hmin = min(self.metrics["heatmap"])*1.0 or 1.0
-    hmax = max(self.metrics["heatmap"])*1.0
+    if self.full_query:
+      hmin = min(self.metrics["heatmap"])*1.0 or 1.0
+      hmax = max(self.metrics["heatmap"])*1.0
+    else:
+      hmin = 1.0
+      hmax = 1.0
     if hmin < hmax:
       heatmap = ''.join(
         [
@@ -1932,7 +1928,7 @@ class RedditUser:
             self.signup_date.utctimetuple()
           ),
         "first_post_date" : calendar.timegm(
-            self.first_post_date.utctimetuple()
+            self.first_post_date.utctimetuple() if self.full_query else datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc).utctimetuple()
           ),
         "lurk_period" : self.lurk_period,
         "comments" : {
