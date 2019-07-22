@@ -500,8 +500,11 @@ class RedditUser:
         # reddit may rate limit if we don't wait for 2 seconds 
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
-        # SHC: Reddit's official rate limit is 1 request/sec
-        time.sleep(0.5)
+        # SHC: let's be smart about this, hitting the CDN unauthenticatedd
+        # does not show the remaining ratelimit, so let's only sleep
+        # if we get a http 429 error
+        if response.status_code == 429:
+          time.sleep(2)
       else:
         more_comments = False
 
@@ -566,8 +569,11 @@ class RedditUser:
         # reddit may rate limit if we don't wait for 2 seconds 
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
-        # SHC: Reddit's official rate limit is 1 request/sec
-        time.sleep(0.5)
+        # SHC: let's be smart about this, hitting the CDN unauthenticatedd
+        # does not show the remaining ratelimit, so let's only sleep
+        # if we get a http 429 error
+        if response.status_code == 429:
+          time.sleep(2)
       else:
         more_submissions = False
 

@@ -8,6 +8,7 @@ Dependencies
 * [pytz](https://pypi.python.org/pypi/pytz/)
 * [TextBlob 0.9.0](http://textblob.readthedocs.org/en/dev/)
 * [Flask](https://pypi.org/project/Flask/)
+* [Requests](https://pypi.org/project/requests/)
 
 Setup
 -----
