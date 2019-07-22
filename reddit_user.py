@@ -195,9 +195,10 @@ class RedditUser:
   IMAGE_EXTENSIONS = ["jpg", "png", "gif", "bmp"]
 
 
-  def __init__(self, username, json_data=None):
+  def __init__(self, username, json_data=None, complete_query=True):
     # Populate username and about data
     self.username = username
+    self.full_query = complete_query
 
     self.comments = []
     self.submissions = []
@@ -281,79 +282,82 @@ class RedditUser:
     self.worst_submission = None
 
     self.metrics = {
-      "date" : [],
-      "weekday" : [],
-      "hour" : [],
-      "subreddit" : [],
-      "heatmap" : [],
-      "recent_karma" : [],
-      "recent_posts" : []
+    "date" : [],
+    "weekday" : [],
+    "hour" : [],
+    "subreddit" : [],
+    "heatmap" : [],
+    "recent_karma" : [],
+    "recent_posts" : []
     }
 
     self.submissions_by_type = {
-      "name" : "All",
-      "children" : [
+    "name" : "All",
+    "children" : [
         {
-          "name" : "Self", 
-          "children" : []
+        "name" : "Self", 
+        "children" : []
         },
         {
-          "name" : "Image", 
-          "children" : []
+        "name" : "Image", 
+        "children" : []
         },
         {
-          "name" : "Video", 
-          "children" : []
+        "name" : "Video", 
+        "children" : []
         },
         {
-          "name" : "Other", 
-          "children" : []
+        "name" : "Other", 
+        "children" : []
         }
-      ]
+    ]
     }
 
-    self.metrics["date"] = [
+    # SHC: a lot of the processing is skipped in a quick query to save time and
+    # processing power, full query must be specified to do this.
+    if self.full_query:
+      self.metrics["date"] = [
       {
-        "date" : (year, month), 
-        "comments" : 0, 
-        "submissions": 0, 
-        "comment_karma": 0, 
-        "submission_karma": 0
+          "date" : (year, month), 
+          "comments" : 0, 
+          "submissions": 0, 
+          "comment_karma": 0, 
+          "submission_karma": 0
       } for (year, month) in sorted(
-        list(
+          list(
           set([
-            (
+              (
               (self.today - datetime.timedelta(days=x)).year,
               (self.today - datetime.timedelta(days=x)).month
-            ) for x in range(0, (self.today - start).days)
+              ) for x in range(0, (self.today - start).days)
           ])
-        )
+          )
       )
-    ]
+      ]
 
-    self.metrics["heatmap"] = [0] * 24 * 61
-    self.metrics["recent_karma"] = [0] * 61
-    self.metrics["recent_posts"] = [0] * 61
-    
-    self.metrics["hour"] = [
+      self.metrics["heatmap"] = [0] * 24 * 61
+      self.metrics["recent_karma"] = [0] * 61
+      self.metrics["recent_posts"] = [0] * 61
+
+      self.metrics["hour"] = [
       {
-        "hour": hour, 
-        "comments": 0, 
-        "submissions": 0, 
-        "comment_karma": 0, 
-        "submission_karma": 0
+          "hour": hour, 
+          "comments": 0, 
+          "submissions": 0, 
+          "comment_karma": 0, 
+          "submission_karma": 0
       } for hour in range(0, 24)
-    ]
+      ]
 
-    self.metrics["weekday"] = [
+      self.metrics["weekday"] = [
       {
-        "weekday": weekday, 
-        "comments": 0, 
-        "submissions": 0, 
-        "comment_karma": 0, 
-        "submission_karma": 0
+          "weekday": weekday, 
+          "comments": 0, 
+          "submissions": 0, 
+          "comment_karma": 0, 
+          "submission_karma": 0
       } for weekday in range(0, 7)
-    ]
+      ]
 
     self.genders = []
     self.orientations = []
@@ -496,7 +500,11 @@ class RedditUser:
         # reddit may rate limit if we don't wait for 2 seconds 
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
-        #time.sleep(0.5) 
+        # SHC: let's be smart about this, hitting the CDN unauthenticatedd
+        # does not show the remaining ratelimit, so let's only sleep
+        # if we get a http 429 error
+        if response.status_code == 429:
+          time.sleep(2)
       else:
         more_comments = False
 
@@ -561,7 +569,11 @@ class RedditUser:
         # reddit may rate limit if we don't wait for 2 seconds 
         # between successive requests. If that happens, 
         # uncomment and increase sleep time in the following line.
-        #time.sleep(0.5) 
+        # SHC: let's be smart about this, hitting the CDN unauthenticatedd
+        # does not show the remaining ratelimit, so let's only sleep
+        # if we get a http 429 error
+        if response.status_code == 429:
+          time.sleep(2)
       else:
         more_submissions = False
 
@@ -575,25 +587,22 @@ class RedditUser:
 
     """
 
-    if self.comments:
-      self.process_comments()
+    if self.full_query:
+      if self.comments:
+        self.process_comments()
+      if self.submissions:
+        self.process_submissions()
 
-    if self.submissions:
-      self.process_submissions()
-    
     if self.comments or self.submissions:
       self.derive_attributes()
 
-  
+
   def process_comments(self):
     """
     Process list of redditor's comments.
 
     """
 
-    if not self.comments:
-      return
-    
     self.earliest_comment = self.comments[-1]
     self.latest_comment = self.comments[0]
 
@@ -610,9 +619,6 @@ class RedditUser:
 
     """
 
-    if not self.submissions:
-      return
-    
     self.earliest_submission = self.submissions[-1]
     self.latest_submission = self.submissions[0]
 
@@ -1073,78 +1079,80 @@ class RedditUser:
           subreddit["value"].lower()
         )
 
-    # If someone mentions their wife, 
-    # they should be male, and vice-versa (?)
-    if "wife" in [v for v, s in self.relationship_partners]:
-      self.derived_attributes["gender"].append("male")
-    elif "husband" in [v for v, s in self.relationship_partners]:
-      self.derived_attributes["gender"].append("female")
-
-    commented_dates = sorted(self.commented_dates)
-    submitted_dates = sorted(self.submitted_dates)
-    active_dates = sorted(self.commented_dates + self.submitted_dates)
-
-    min_date = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
-    first_comment_date = \
-      min(commented_dates) if commented_dates else min_date
-    first_submission_date = \
-      min(submitted_dates) if submitted_dates else min_date
-    
-
-    self.first_post_date = max(first_comment_date, first_submission_date)
-    
-    active_dates += [datetime.datetime.now(tz=pytz.utc)]
-    commented_dates += [datetime.datetime.now(tz=pytz.utc)]
-    submitted_dates += [datetime.datetime.now(tz=pytz.utc)]
-
-    # Find the longest period of inactivity
-    comment_lurk_period = max(
-      [
-        {
-          "from" : calendar.timegm(d1.utctimetuple()), 
-          "to" : calendar.timegm(d2.utctimetuple()), 
-          "days" : (d2 - d1).total_seconds(), 
-        } for d1, d2 in zip(
-          commented_dates, commented_dates[1:]
-        )
-      ], key=lambda x:x["days"]
-    ) if len(commented_dates) > 1 else {"days":-1}
-
-    submission_lurk_period = max(
-      [
-        {
-          "from" : calendar.timegm(d1.utctimetuple()), 
-          "to" : calendar.timegm(d2.utctimetuple()), 
-          "days" : (d2 - d1).total_seconds(), 
-        } for d1, d2 in zip(
-          submitted_dates, submitted_dates[1:]
-        )
-      ], key=lambda x:x["days"]
-    ) if len(submitted_dates) > 1 else {"days":-1}
-
-    post_lurk_period = max(
-      [
-        {
-          "from" : calendar.timegm(d1.utctimetuple()), 
-          "to" : calendar.timegm(d2.utctimetuple()), 
-          "days" : (d2 - d1).total_seconds(),
-        } for d1, d2 in zip(
-          active_dates, active_dates[1:]
-        )
-      ], key=lambda x:x["days"]
-    )
-
-    self.lurk_period = min(
-      [
-        x for x in [
-          comment_lurk_period, 
-          submission_lurk_period, 
-          post_lurk_period
-        ] if x["days"]>=0
-      ],
-      key=lambda x:x["days"]
-    )
-    del self.lurk_period["days"]
+    if self.full_query:
+      # If someone mentions their wife, 
+      # they should be male, and vice-versa (?)
+      # SHC: OMG HAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHA
+      if "wife" in [v for v, s in self.relationship_partners]:
+        self.derived_attributes["gender"].append("male")
+      elif "husband" in [v for v, s in self.relationship_partners]:
+        self.derived_attributes["gender"].append("female")
+      
+      commented_dates = sorted(self.commented_dates)
+      submitted_dates = sorted(self.submitted_dates)
+      active_dates = sorted(self.commented_dates + self.submitted_dates)
+      
+      min_date = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
+      first_comment_date = \
+        min(commented_dates) if commented_dates else min_date
+      first_submission_date = \
+        min(submitted_dates) if submitted_dates else min_date
+      
+      
+      self.first_post_date = max(first_comment_date, first_submission_date)
+      
+      active_dates += [datetime.datetime.now(tz=pytz.utc)]
+      commented_dates += [datetime.datetime.now(tz=pytz.utc)]
+      submitted_dates += [datetime.datetime.now(tz=pytz.utc)]
+      
+      # Find the longest period of inactivity
+      comment_lurk_period = max(
+        [
+          {
+            "from" : calendar.timegm(d1.utctimetuple()), 
+            "to" : calendar.timegm(d2.utctimetuple()), 
+            "days" : (d2 - d1).total_seconds(), 
+          } for d1, d2 in zip(
+            commented_dates, commented_dates[1:]
+          )
+        ], key=lambda x:x["days"]
+      ) if len(commented_dates) > 1 else {"days":-1}
+      
+      submission_lurk_period = max(
+        [
+          {
+            "from" : calendar.timegm(d1.utctimetuple()), 
+            "to" : calendar.timegm(d2.utctimetuple()), 
+            "days" : (d2 - d1).total_seconds(), 
+          } for d1, d2 in zip(
+            submitted_dates, submitted_dates[1:]
+          )
+        ], key=lambda x:x["days"]
+      ) if len(submitted_dates) > 1 else {"days":-1}
+      
+      post_lurk_period = max(
+        [
+          {
+            "from" : calendar.timegm(d1.utctimetuple()), 
+            "to" : calendar.timegm(d2.utctimetuple()), 
+            "days" : (d2 - d1).total_seconds(),
+          } for d1, d2 in zip(
+            active_dates, active_dates[1:]
+          )
+        ], key=lambda x:x["days"]
+      )
+      
+      self.lurk_period = min(
+        [
+          x for x in [
+            comment_lurk_period, 
+            submission_lurk_period, 
+            post_lurk_period
+          ] if x["days"]>=0
+        ],
+        key=lambda x:x["days"]
+      )
+      del self.lurk_period["days"]
 
 
   def commented_subreddits(self):
@@ -1354,12 +1362,11 @@ class RedditUser:
           }
         )
 
-    
     metrics_topic = {
       "name" : "All", 
       "children" : []
     }
-    
+
     # We need both topics (for Posts across topics) and 
     # synopsis_topics (for Synopsis) because we want to include only 
     # topics that meet the threshold limits in synopsis_topics    
@@ -1388,67 +1395,68 @@ class RedditUser:
           synopsis_topics += [topic] * count
 
     topics = []
-    
-    for comment in self.comments:
-      subreddit = subreddits_dict[comment.subreddit] \
-        if comment.subreddit in subreddits_dict else None
-      if subreddit and subreddit["topic_level1"] != "Other":
-        topic = subreddit["topic_level1"]
-        if subreddit["topic_level2"]:
-          topic += ">" + subreddit["topic_level2"]
+
+    if self.full_query:
+      for comment in self.comments:
+        subreddit = subreddits_dict[comment.subreddit] \
+          if comment.subreddit in subreddits_dict else None
+        if subreddit and subreddit["topic_level1"] != "Other":
+          topic = subreddit["topic_level1"]
+          if subreddit["topic_level2"]:
+            topic += ">" + subreddit["topic_level2"]
+          else:
+            topic += ">" + "Generic"
+          if subreddit["topic_level3"]:
+            topic += ">" + subreddit["topic_level3"]
+          else:
+            topic += ">" + "Generic"
+          topics.append(topic)
         else:
-          topic += ">" + "Generic"
-        if subreddit["topic_level3"]:
-          topic += ">" + subreddit["topic_level3"]
+          topics.append("Other")
+
+      for submission in self.submissions:
+        subreddit = subreddits_dict[submission.subreddit] \
+          if submission.subreddit in subreddits_dict else None
+        if subreddit and subreddit["topic_level1"] != "Other":
+          topic = subreddit["topic_level1"]
+          if subreddit["topic_level2"]:
+            topic += ">" + subreddit["topic_level2"]
+          else:
+            topic += ">" + "Generic"
+          if subreddit["topic_level3"]:
+            topic += ">" + subreddit["topic_level3"]
+          else:
+            topic += ">" + "Generic"
+          topics.append(topic)
         else:
-          topic += ">" + "Generic"
-        topics.append(topic)
-      else:
-        topics.append("Other")
-    
-    for submission in self.submissions:
-      subreddit = subreddits_dict[submission.subreddit] \
-        if submission.subreddit in subreddits_dict else None
-      if subreddit and subreddit["topic_level1"] != "Other":
-        topic = subreddit["topic_level1"]
-        if subreddit["topic_level2"]:
-          topic += ">" + subreddit["topic_level2"]
-        else:
-          topic += ">" + "Generic"
-        if subreddit["topic_level3"]:
-          topic += ">" + subreddit["topic_level3"]
-        else:
-          topic += ">" + "Generic"
-        topics.append(topic)
-      else:
-        topics.append("Other")
-    
-    for topic, count in Counter(topics).most_common():
-      level_topics = filter(None, topic.split(">"))
-      current_node = metrics_topic
-      for i, level_topic in enumerate(level_topics):
-        children = current_node["children"]
-        if i+1 < len(level_topics):
-          found_child = False
-          for child in children:
-            if child["name"] == level_topic:
-              child_node = child
-              found_child = True
-              break
-          if not found_child:
+          topics.append("Other")
+
+      for topic, count in Counter(topics).most_common():
+        level_topics = filter(None, topic.split(">"))
+        current_node = metrics_topic
+        for i, level_topic in enumerate(level_topics):
+          children = current_node["children"]
+          if i+1 < len(level_topics):
+            found_child = False
+            for child in children:
+              if child["name"] == level_topic:
+                child_node = child
+                found_child = True
+                break
+            if not found_child:
+              child_node = {
+                "name" : level_topic, 
+                "children" : []
+              }
+              children.append(child_node)
+            current_node = child_node
+          else:
             child_node = {
               "name" : level_topic, 
-              "children" : []
+              "size" : count
             }
             children.append(child_node)
-          current_node = child_node
-        else:
-          child_node = {
-            "name" : level_topic, 
-            "size" : count
-          }
-          children.append(child_node)   
-    
+
     common_words = [
       {
         "text" : word, 
@@ -1894,8 +1902,12 @@ class RedditUser:
       [x["submission_karma"] for x in metrics_date]
     )
 
-    hmin = min(self.metrics["heatmap"])*1.0 or 1.0
-    hmax = max(self.metrics["heatmap"])*1.0
+    if self.full_query:
+      hmin = min(self.metrics["heatmap"])*1.0 or 1.0
+      hmax = max(self.metrics["heatmap"])*1.0
+    else:
+      hmin = 1.0
+      hmax = 1.0
     if hmin < hmax:
       heatmap = ''.join(
         [
@@ -1922,7 +1934,7 @@ class RedditUser:
             self.signup_date.utctimetuple()
           ),
         "first_post_date" : calendar.timegm(
-            self.first_post_date.utctimetuple()
+            self.first_post_date.utctimetuple() if self.full_query else datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc).utctimetuple()
           ),
         "lurk_period" : self.lurk_period,
         "comments" : {
