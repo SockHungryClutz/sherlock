@@ -9,7 +9,7 @@ import sys
 import calendar
 from collections import Counter
 from itertools import groupby
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 import requests
 import pytz
@@ -463,14 +463,12 @@ class RedditUser:
       # rate limiting (429) errors
       
       for child in response_json["data"]["children"]:
-        id = child["data"]["id"].encode("ascii", "ignore")
-        subreddit = child["data"]["subreddit"].\
-          encode("ascii", "ignore")
+        id = child["data"]["id"]#.encode("ascii", "ignore")
+        subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
         text = child["data"]["body"]
         created_utc = child["data"]["created_utc"]
         score = child["data"]["score"]
-        submission_id = child["data"]["link_id"].\
-          encode("ascii", "ignore").lower()[3:]
+        submission_id = child["data"]["link_id"].lower()[3:]#.encode("ascii", "ignore").lower()[3:]
         edited = child["data"]["edited"]
         top_level = True \
           if child["data"]["parent_id"].startswith("t3") else False
@@ -531,17 +529,14 @@ class RedditUser:
       # rate limiting (429) errors
       
       for child in response_json["data"]["children"]:
-        id = child["data"]["id"].encode("ascii","ignore")
-        subreddit = child["data"]["subreddit"].\
-          encode("ascii", "ignore")
+        id = child["data"]["id"]#.encode("ascii","ignore")
+        subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
         text = child["data"]["selftext"]
         created_utc = child["data"]["created_utc"]
         score = child["data"]["score"]
-        permalink = "http://www.reddit.com" + \
-          child["data"]["permalink"].\
-          encode("ascii", "ignore").lower()
-        url = child["data"]["url"].encode("ascii", "ignore").lower()
-        title = child["data"]["title"].encode("ascii", "ignore")
+        permalink = "http://www.reddit.com" + child["data"]["permalink"].lower()#.encode("ascii", "ignore").lower())
+        url = child["data"]["url"].lower()#.encode("ascii", "ignore").lower()
+        title = child["data"]["title"]#.encode("ascii", "ignore")
         is_self = child["data"]["is_self"]
         gilded = child["data"]["gilded"]
         domain = child["data"]["domain"]
@@ -1432,7 +1427,7 @@ class RedditUser:
           topics.append("Other")
 
       for topic, count in Counter(topics).most_common():
-        level_topics = filter(None, topic.split(">"))
+        level_topics = list(filter(None, topic.split(">")))
         current_node = metrics_topic
         for i, level_topic in enumerate(level_topics):
           children = current_node["children"]
