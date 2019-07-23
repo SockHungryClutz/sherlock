@@ -575,4 +575,4 @@ class TextParser:
     
     """
 
-    print TextBlob(sentence).tags
+    print(TextBlob(sentence).tags)

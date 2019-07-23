@@ -2,6 +2,7 @@ Sherlock (Sheri)
 ========
 
 Extract interesting information about redditors from their submissions and comments. Outputs data in JSON format.
+(Master branch is now compatible with Python 3.X, for Python 2.7 support, use the python-2-7 branch)
 
 Dependencies
 ------------
