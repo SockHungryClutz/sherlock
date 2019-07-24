@@ -2,6 +2,6 @@
 #
 # Run 'pip install -r requirements.txt' to install these dependencies.
 pytz
-textblob==0.9.0
+textblob
 flask
 requests
