@@ -419,13 +419,28 @@ class RedditUser:
     return str(self.results())
 
 
+  def send_request(self, url):
+    """
+    Wrapper to enforce reddit throttling and (hopefully) cut down on errors
+    """
+    succeeded = False
+    while not succeeded:
+      try:
+        response = requests.get(url, headers=self.HEADERS)
+        succeeded = True
+      except BaseException as e:
+        # Most likely rate limiting for reddit, wait then try again
+        time.sleep(2)
+    return response
+
+
   def get_about(self):
     """
     Returns basic data about redditor.
 
     """
     url = r"http://www.reddit.com/user/%s/about.json" % self.username
-    response = requests.get(url, headers=self.HEADERS)
+    response = self.send_request(url)
     response_json = response.json()
     if "error" in response_json and response_json["error"] == 404:
       return None
@@ -456,43 +471,39 @@ class RedditUser:
       % self.username
     url = base_url
     while more_comments:
-      try:
-        response = requests.get(url, headers=self.HEADERS)
-        response_json = response.json()
+      response = self.send_request(url)
+      response_json = response.json()
 
-        for child in response_json["data"]["children"]:
-          id = child["data"]["id"]#.encode("ascii", "ignore")
-          subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
-          text = child["data"]["body"]
-          created_utc = child["data"]["created_utc"]
-          score = child["data"]["score"]
-          submission_id = child["data"]["link_id"].lower()[3:]#.encode("ascii", "ignore").lower()[3:]
-          edited = child["data"]["edited"]
-          top_level = True \
-            if child["data"]["parent_id"].startswith("t3") else False
-          gilded = child["data"]["gilded"]
-          permalink = "http://www.reddit.com/r/%s/comments/%s/_/%s" \
-            % (subreddit, submission_id, id)
+      for child in response_json["data"]["children"]:
+        id = child["data"]["id"]#.encode("ascii", "ignore")
+        subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
+        text = child["data"]["body"]
+        created_utc = child["data"]["created_utc"]
+        score = child["data"]["score"]
+        submission_id = child["data"]["link_id"].lower()[3:]#.encode("ascii", "ignore").lower()[3:]
+        edited = child["data"]["edited"]
+        top_level = True \
+          if child["data"]["parent_id"].startswith("t3") else False
+        gilded = child["data"]["gilded"]
+        permalink = "http://www.reddit.com/r/%s/comments/%s/_/%s" \
+          % (subreddit, submission_id, id)
 
-          comment = Comment(
-            id=id,
-            subreddit=subreddit,
-            text=text,
-            created_utc=created_utc,
-            score=score,
-            permalink=permalink,
-            submission_id=submission_id,
-            edited=edited,
-            top_level=top_level,
-            gilded=gilded
-          )
+        comment = Comment(
+          id=id,
+          subreddit=subreddit,
+          text=text,
+          created_utc=created_utc,
+          score=score,
+          permalink=permalink,
+          submission_id=submission_id,
+          edited=edited,
+          top_level=top_level,
+          gilded=gilded
+        )
 
-          comments.append(comment)
+        comments.append(comment)
 
-        after = response_json["data"]["after"]
-      except BaseException as e:
-        # Most likely rate limiting for reddit, wait then try again
-        time.sleep(2)
+      after = response_json["data"]["after"]
 
       if after:
         url = base_url + "&after=%s" % after
@@ -523,43 +534,39 @@ class RedditUser:
       % self.username
     url = base_url
     while more_submissions:
-      try:
-        response = requests.get(url, headers=self.HEADERS)
-        response_json = response.json()
+      response = self.send_request(url)
+      response_json = response.json()
 
-        for child in response_json["data"]["children"]:
-          id = child["data"]["id"]#.encode("ascii","ignore")
-          subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
-          text = child["data"]["selftext"]
-          created_utc = child["data"]["created_utc"]
-          score = child["data"]["score"]
-          permalink = "http://www.reddit.com" + child["data"]["permalink"].lower()#.encode("ascii", "ignore").lower())
-          url = child["data"]["url"].lower()#.encode("ascii", "ignore").lower()
-          title = child["data"]["title"]#.encode("ascii", "ignore")
-          is_self = child["data"]["is_self"]
-          gilded = child["data"]["gilded"]
-          domain = child["data"]["domain"]
+      for child in response_json["data"]["children"]:
+        id = child["data"]["id"]#.encode("ascii","ignore")
+        subreddit = child["data"]["subreddit"]#.encode("ascii", "ignore")
+        text = child["data"]["selftext"]
+        created_utc = child["data"]["created_utc"]
+        score = child["data"]["score"]
+        permalink = "http://www.reddit.com" + child["data"]["permalink"].lower()#.encode("ascii", "ignore").lower())
+        url = child["data"]["url"].lower()#.encode("ascii", "ignore").lower()
+        title = child["data"]["title"]#.encode("ascii", "ignore")
+        is_self = child["data"]["is_self"]
+        gilded = child["data"]["gilded"]
+        domain = child["data"]["domain"]
 
-          submission = Submission(
-            id=id,
-            subreddit=subreddit,
-            text=text,
-            created_utc=created_utc,
-            score=score,
-            permalink=permalink,
-            url=url,
-            title=title,
-            is_self=is_self,
-            gilded=gilded,
-            domain=domain
-          )         
+        submission = Submission(
+          id=id,
+          subreddit=subreddit,
+          text=text,
+          created_utc=created_utc,
+          score=score,
+          permalink=permalink,
+          url=url,
+          title=title,
+          is_self=is_self,
+          gilded=gilded,
+          domain=domain
+        )         
 
-          submissions.append(submission)
+        submissions.append(submission)
 
-        after = response_json["data"]["after"]
-      except BaseException as e:
-        # Most likely rate limiting for reddit, wait then try again
-        time.sleep(2)
+      after = response_json["data"]["after"]
 
       if after:
         url = base_url + "&after=%s" % after
