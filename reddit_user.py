@@ -203,7 +203,7 @@ class RedditUser:
 
     config = configparser.ConfigParser()
     config.read('throttleconfig.ini')
-    self.throttle_timeout = int(config['thottling']['timeout'])
+    self.throttle_timeout = int(config['throttling']['timeout'])
     self.throttle_waittime = int(config['throttling']['waittime'])
 
     self.comments = []
