@@ -7,6 +7,7 @@ import json
 import time
 import sys
 import calendar
+import configparser
 from collections import Counter
 from itertools import groupby
 from urllib.parse import urlparse
@@ -199,6 +200,11 @@ class RedditUser:
     # Populate username and about data
     self.username = username
     self.full_query = complete_query
+
+    config = configparser.ConfigParser()
+    config.read('throttleconfig.ini')
+    self.throttle_timeout = int(config['thottling']['timeout'])
+    self.throttle_waittime = int(config['throttling']['waittime'])
 
     self.comments = []
     self.submissions = []
@@ -426,11 +432,11 @@ class RedditUser:
     succeeded = False
     while not succeeded:
       try:
-        response = requests.get(url, headers=self.HEADERS, timeout=3)
+        response = requests.get(url, headers=self.HEADERS, timeout=self.throttle_timeout)
         succeeded = True
       except BaseException as e:
         # Most likely rate limiting for reddit, wait then try again
-        time.sleep(2)
+        time.sleep(self.throttle_waittime)
     return response
 
 
@@ -514,7 +520,7 @@ class RedditUser:
         # does not show the remaining ratelimit, so let's only sleep
         # if we get a http 429 error
         if response.status_code == 429:
-          time.sleep(2)
+          time.sleep(self.throttle_waittime)
       else:
         more_comments = False
 
@@ -577,7 +583,7 @@ class RedditUser:
         # does not show the remaining ratelimit, so let's only sleep
         # if we get a http 429 error
         if response.status_code == 429:
-          time.sleep(2)
+          time.sleep(self.throttle_waittime)
       else:
         more_submissions = False
 
