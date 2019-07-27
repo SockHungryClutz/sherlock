@@ -426,7 +426,7 @@ class RedditUser:
     succeeded = False
     while not succeeded:
       try:
-        response = requests.get(url, headers=self.HEADERS)
+        response = requests.get(url, headers=self.HEADERS, timeout=3)
         succeeded = True
       except BaseException as e:
         # Most likely rate limiting for reddit, wait then try again
