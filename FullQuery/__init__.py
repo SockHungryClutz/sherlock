@@ -19,10 +19,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(str(u.results()))
         except UserNotFoundError:
             return func.HttpResponse(
-                f'{"_errors":[{"User {name}} not found"}]}')
+                '{"_errors":[{"User %s not found"}]}' % name)
         except NoDataError:
             return func.HttpResponse(
-                f'{"_errors":[{"No data available for user {name}}"}]}')
+                '{"_errors":[{"No data available for user %s"}]}' % name)
     else:
         return func.HttpResponse(
-             f'{"_errors":[{"User {name} not found"}]}')
+             '{"_errors":[{"User %s not found"}]}' % name)
