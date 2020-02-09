@@ -1,14 +1,18 @@
-Sherlock (Sheri)
+Sherlock (Sherley)
 ========
 
 Extract interesting information about redditors from their submissions and comments. Outputs data in JSON format.
 (Master branch is now compatible with Python 3.X, for Python 2.7 support, use the python-2-7 branch)
 
+This branch is for azure functions, a cheaper alternative than azure webapps for low volume usage  
+The two main functions are Query and FullQuery, they function similar to the azure webapp  
+Some dificulties of having a Dynamic Linux function includes having duplicate code for each function and needing to initialize the textblob corpus every call. Does not greatly affect performance that much however.
+
 Dependencies
 ------------
 * [pytz](https://pypi.python.org/pypi/pytz/)
 * [TextBlob 0.9.0](http://textblob.readthedocs.org/en/dev/)
-* [Flask](https://pypi.org/project/Flask/)
+* [azure-functions](https://pypi.org/project/azure-functions/)
 * [Requests](https://pypi.org/project/requests/)
 
 Setup
@@ -20,7 +24,7 @@ Usage
 -----
     python sherlock.py <reddit-username>
 
-Changes to Sherlock (Sheri) also allow it to be run as a flask web application from a local environment or from Azure using application.py  
+Changes to Sherlock (Sherley) also allow it to be run as a flask web application from a local environment or from Azure using application.py  
 Also, requests can be simple requests or full requests (default) to save time and processing power if all you care about is some basic data and karma counts
 
 Example

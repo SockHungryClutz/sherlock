@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 import requests
 import pytz
 
-from subreddits import subreddits_dict, ignore_text_subs, default_subs
-from text_parser import TextParser
+from .subreddits import subreddits_dict, ignore_text_subs, default_subs
+from .text_parser import TextParser
 
 parser = TextParser()
 
@@ -201,10 +201,9 @@ class RedditUser:
     self.username = username
     self.full_query = complete_query
 
-    config = configparser.ConfigParser()
-    config.read('throttleconfig.ini')
-    self.throttle_timeout = int(config['throttling']['timeout'])
-    self.throttle_waittime = int(config['throttling']['waittime'])
+    # Hard coded because of Azure Functions file issue
+    self.throttle_timeout = 2
+    self.throttle_waittime = 1
 
     self.comments = []
     self.submissions = []
