@@ -202,8 +202,8 @@ class RedditUser:
     self.full_query = complete_query
 
     # Hard coded because of Azure Functions file issue
-    self.throttle_timeout = 2
-    self.throttle_waittime = 1
+    self.throttle_timeout = 5
+    self.throttle_waittime = 2
 
     self.comments = []
     self.submissions = []
