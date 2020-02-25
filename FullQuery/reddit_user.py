@@ -429,12 +429,14 @@ class RedditUser:
     Wrapper to enforce reddit throttling and (hopefully) cut down on errors
     """
     succeeded = False
+    timeout = self.throttle_timeout
     while not succeeded:
       try:
-        response = requests.get(url, headers=self.HEADERS, timeout=self.throttle_timeout)
+        response = requests.get(url, headers=self.HEADERS, timeout=timeout)
         succeeded = True
       except BaseException as e:
         # Most likely rate limiting for reddit, wait then try again
+        timeout += 2
         time.sleep(self.throttle_waittime)
     return response
 
